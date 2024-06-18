@@ -75,3 +75,51 @@ dataProvider = new CallbackDataProvider<VEmployeeRecord, Condition>(
         
     .withConfigurableFilter();
 ```
+
+### JooqFilter
+
+Bind Vaadin UI components directly to query conditions used by JOOQ.
+
+#### Example
+
+```java
+// the container for all jooq filter specifications
+JooqFilter jooqFilter = new JooqFilter();
+
+// data provider with configurable filter
+dataProvider = new CallbackDataProvider<VEmployeeRecord, JooqFilter>(
+    query -> dsl
+        .selectFrom(V_EMPLOYEE)
+        .where(JooqFilterWhereConditionFactory.buildWhereCondition(query.getFilter()))
+        .offset(query.getOffset())
+        .limit(query.getLimit())
+        .fetchStream(),
+    
+    query -> dsl
+        .selectCount()
+        .from(V_EMPLOYEE)
+        .where(JooqFilterWhereConditionFactory.buildWhereCondition(query.getFilter()))
+        .fetchOneInto(Integer.class),
+    
+    VEmployeeRecord::getEmployeeId)
+
+    .withConfigurableFilter();
+);
+
+
+// the value of the textfield should be used for the resulting WHERE clause 
+JooqFilterSpecification spec = JooqFilterSpecification.builder()
+    .withField(CUSTOMER.NAME) // the JOQ table field used for the where clause
+    .withType(JooqFilterType.STRING_LIKE_MATCH); // type of condition
+
+// bind UI components to the resulting WHERE condition
+TextField searchFieldName = new TextField();
+searchFieldName.addValueChangeListener(event -> {
+    spec.setValue(event.getValue());
+    jooqFilter.add(spec);
+    // this automatically refresh the grid by calling count/fetch of the data provider
+    this.dataProvider.setFilter(jooqFilter);
+});
+
+
+```
